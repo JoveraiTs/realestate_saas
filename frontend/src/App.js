@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 const App = () => {
+
+
+  
   const [tenantData, setTenantData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState('');
@@ -15,7 +18,7 @@ const App = () => {
         setLoading(true);
         setApiError('');
         
-        const response = await fetch('http://localhost:8080/api/tenant', {
+        const response = await fetch('http://localhost:8080/api/tenant-details', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
