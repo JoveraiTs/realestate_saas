@@ -1,0 +1,57 @@
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+
+// --- Direct MinIO configuration ---
+const MINIO_ENDPOINT = "http://172.16.20.10:9001";  // S3 API port (not GUI)
+const MINIO_ACCESS_KEY = "admin@jovera.ae";
+const MINIO_SECRET_KEY = "P@ssw0rd@2020";
+const MINIO_PUBLIC_URL = "https://producers-praise-buzz-chan.trycloudflare.com";
+const BUCKET = "jovera-erp";
+
+// === Initialize S3 client (MinIO compatible) ===
+const s3 = new S3Client({
+  region: "us-east-1",
+  endpoint: MINIO_ENDPOINT,
+  credentials: {
+    accessKeyId: MINIO_ACCESS_KEY,
+    secretAccessKey: MINIO_SECRET_KEY,
+  },
+  forcePathStyle: true,
+});
+
+/**
+ * Upload file to MinIO and return public Cloudflare URL
+ */
+async function uploadToMinio(fileBuffer, fileName, mimeType, folder = "") {
+  const key = folder ? `${folder}/${fileName}` : fileName;
+
+  try {
+    const command = new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: fileBuffer,
+      ContentType: mimeType,
+    });
+
+    await s3.send(command);
+
+    // Return the public Cloudflare URL for accessing the file
+    return `${BUCKET}/${key}`;
+  } catch (err) {
+    console.error("❌ MinIO upload error:", err.message);
+    throw new Error(`Failed to upload to MinIO: ${err.message}`);
+  }
+}
+
+/**
+ * Generate a public URL for any stored object key
+ */
+function getPublicUrl(key) {
+  if (!key) return null;
+  return `${MINIO_PUBLIC_URL}/${key}`;
+}
+
+module.exports = {
+  s3,
+  uploadToMinio,
+  getPublicUrl,
+};

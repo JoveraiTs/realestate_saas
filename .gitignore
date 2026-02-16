@@ -1,0 +1,86 @@
+# ===============================
+# 🔹 Global Ignores
+# ===============================
+# OS junk
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env files (secrets, credentials)
+.env
+.env.*
+!.env.example
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/
+coverage/
+.cache/
+*.tsbuildinfo
+
+# ===============================
+# 🔹 Backend
+# ===============================
+backend/node_modules/
+backend/.env
+backend/.env.*
+backend/logs/
+backend/uploads/
+backend/temp/
+backend/debug.log
+
+# Mongoose & runtime data
+backend/*.pid
+backend/*.seed
+backend/data/
+backend/storage/
+
+# ===============================
+# 🔹 Frontend
+# ===============================
+frontend/node_modules/
+frontend/.env
+frontend/.env.*
+frontend/build/
+frontend/dist/
+frontend/.parcel-cache/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+
+# Local dev cache
+frontend/.eslintcache
+frontend/.turbo/
+frontend/.vite/
+frontend/.vercel/
+
+# ===============================
+# 🔹 Docker / Misc
+# ===============================
+docker-compose.override.yml
+*.pid
+*.seed
+*.bak
+*.old
+
+# Local environment or test databases
+*.sqlite
+*.db
+*.local
+
+# ===============================
+# 🔹 Optional: Lock files (if mixed package managers)
+# ===============================
+# Uncomment one if you want to lock dependency manager
+# yarn.lock
+# package-lock.json
+# pnpm-lock.yaml
