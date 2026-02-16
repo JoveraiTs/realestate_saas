@@ -15,7 +15,7 @@ const App = () => {
         setLoading(true);
         setApiError('');
         
-        const response = await fetch('https://psychic-carnival-4jqrv4wjr44vh5rv9-8080.app.github.dev/api/tenant', {
+        const response = await fetch('http://localhost:8080/api/tenant', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ const LoginPage = ({ tenantData }) => {
 
     try {
       // Add actual login API call here
-      const response = await fetch('https://psychic-carnival-4jqrv4wjr44vh5rv9-8080.app.github.dev/api/auth/login', {
+      const response = await fetch('http://localhost:8080/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -360,9 +360,9 @@ const RegistrationPage = ({ apiError }) => {
     submitData.append('logo', logo);
 
     try {
-      console.log('Sending registration request to:', 'https://psychic-carnival-4jqrv4wjr44vh5rv9-8080.app.github.dev/api/tenants/register');
+      console.log('Sending registration request to:', 'http://localhost:8080/api/tenants/register');
       
-      const response = await fetch('https://psychic-carnival-4jqrv4wjr44vh5rv9-8080.app.github.dev/api/tenants/register', {
+      const response = await fetch('http://localhost:8080/api/tenants/register', {
         method: 'POST',
         body: submitData
       });

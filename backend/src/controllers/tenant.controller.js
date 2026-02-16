@@ -6,7 +6,7 @@ const multer = require("multer");
 const Tenant = require("../models/Tenant");
 const { connectTenantDB } = require("../utils/tenantDb");
 const { uploadToMinio, getPublicUrl } = require("../utils/minio");
-const emailQueue = require("../queues/emailQueue");
+const emailQueue = require("../queues/email.queue");
 
 // Import schemas only (not the models)
 const userSchema = require("../models/User");       // This imports just the schema
@@ -52,14 +52,42 @@ exports.registerTenant = async (req, res) => {
       status: "pending",
     });
 
-     // Push email job
-    await emailQueue.add("sendTenantEmail", {
+ 
+    // ---------------------------
+    // Queue Email Jobs
+    // ---------------------------
+
+    // Visitor Email
+    await emailQueue.add('sendVisitorEmail', {
       to: email,
-      subject: "Tenant Registration Received",
-      html: `<p>Hi ${name},</p>
-             <p>Your registration is pending approval.</p>
-             <p>We will notify you once your account is activated.</p>`,
+      subject: `Welcome to Our SaaS,!`,
+      html: `
+       <P>Hi ${name},</P>
+       <P>Thank you for registering your tenant. Your registration is currently pending approval. We will notify you once your tenant is approved and ready to use.</P>
+       <P>Best regards,<br/>The SaaS Team</P>
+      `
     });
+
+    // Admin Email
+    await emailQueue.add('sendAdminEmail', {
+      to: process.env.ALERT_EMAIL,
+      subject: `New Tenant Registration - ${name}`,
+      html: `
+        <P>A new tenant has registered and is pending approval:</P> 
+        <UL>
+          <LI><strong>Name:</strong> ${name}</LI>
+          <LI><strong>Email:</strong> ${email}</LI>
+          <LI><strong>Phone:</strong> ${phone}</LI>
+          <LI><strong>Subdomain:</strong> ${subdomain}</LI>
+          <LI><strong>Plan:</strong> ${plan || "basic"}</LI>
+        </UL>
+        <P>Please review and approve the tenant in the admin dashboard.</P>
+      `
+    });
+
+    // ---------------------------
+    // Respond to client
+    // ---------------------------
 
     res.status(201).json({
       message: "Tenant registration pending approval",
@@ -148,6 +176,16 @@ exports.approveTenant = async (req, res) => {
     tenant.dbCreated = true;
     await tenant.save();
 
+       // Visitor Email
+    await emailQueue.add('sendVisitorEmail', {
+      to: tenant.email,
+      subject: `Your Application is Approved!`,
+      html: `
+        <P>Hi ${tenant.name},</P> 
+        <P>Great news! Your tenant application has been approved. You can now log in and start using the platform.</P>
+         <p> Access your dashboard: <a href="http://${tenant.subdomain}.${process.env.BASE_DOMAIN}">http://${tenant.subdomain}.${process.env.BASE_DOMAIN}</a></p>
+        `
+    });
     res.status(200).json({
       message: "Tenant approved, DB initialized, default permissions & admin created",
       tenant,

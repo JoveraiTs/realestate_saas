@@ -7,7 +7,8 @@ RUN npm install
 
 # Install nodemon globally
 RUN npm install -g nodemon
-
+RUN npm install nodemailer
+RUN npm install --save-dev nodemailer
 COPY . .
 
 EXPOSE 5000

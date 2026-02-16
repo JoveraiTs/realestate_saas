@@ -1,0 +1,49 @@
+# Node
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Tests
+__tests__
+test
+tests
+*.test.js
+*.spec.js
+coverage
+.nyc_output
+
+# Logs
+logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Docker
+Dockerfile
+Dockerfile.prod
+.dockerignore
+
+# Git
+.git
+.gitignore
+
+# Temp files
+tmp
+temp
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist
+build
+*.tsbuildinfo

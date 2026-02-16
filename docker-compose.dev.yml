@@ -1,28 +1,24 @@
-version: '3.9'
-
 services:
   mongodb:
-    image: mongo:6
+    image: abdullah4jovera/mongodb:6
     container_name: mongodb
     restart: always
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - mongo-data:/data/db
 
   redis:
-    image: redis:7-alpine
+    image: abdullah4jovera/redis:latest
     container_name: redis
-    restart: always
     ports:
       - "6379:6379"
+    restart: unless-stopped
     volumes:
       - redis-data:/data
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
+    image: abdullah4jovera/real-estate-backend:latest
     container_name: backend
     restart: always
     ports:
@@ -37,8 +33,9 @@ services:
     depends_on:
       - mongodb
       - redis
+
   nginx:
-    image: nginx:latest
+    image: abdullah4jovera/nginx:latest
     container_name: nginx
     ports:
       - "8081:80"
@@ -48,9 +45,7 @@ services:
       - backend
 
   email-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
+    image: abdullah4jovera/real-estate-email-worker:latest
     container_name: email-worker
     restart: always
     command: npm run worker
@@ -65,9 +60,7 @@ services:
       - redis
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
+    image: abdullah4jovera/real-estate-frontend:latest
     container_name: frontend
     restart: always
     ports:
