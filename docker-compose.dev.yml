@@ -76,6 +76,23 @@ services:
     depends_on:
       - backend
 
+  tenant-website:
+    image: node:20-alpine
+    container_name: tenant-website
+    working_dir: /app
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://backend:8080
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./tenant-website-next:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- -p 3000"
+    depends_on:
+      - backend
+
 volumes:
   mongo-data:
   redis-data:

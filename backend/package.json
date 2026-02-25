@@ -7,6 +7,9 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "worker": "node src/workers/email.worker.js",
+    "seed": "node src/seed/seed.js",
+    "seed:tenant": "node src/seed/seed-tenant-content.js",
+    "seed:verify": "node src/seed/verify-seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

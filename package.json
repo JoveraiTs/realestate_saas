@@ -1,0 +1,20 @@
+{
+  "name": "realestate_saas_root",
+  "private": true,
+  "scripts": {
+    "start": "ENABLE_EMAIL_QUEUE=${ENABLE_EMAIL_QUEUE:-false} npm --prefix backend run start",
+    "start:backend": "ENABLE_EMAIL_QUEUE=${ENABLE_EMAIL_QUEUE:-false} npm --prefix backend run start",
+    "start:backend:queue": "ENABLE_EMAIL_QUEUE=true npm --prefix backend run start",
+    "start:frontend": "npm --prefix frontend run start",
+    "dev:backend": "npm --prefix backend run dev",
+    "seed": "npm --prefix backend run seed",
+    "seed:verify": "npm --prefix backend run seed:verify",
+    "nginx:install": "bash ./main/install-system-nginx.sh",
+    "nginx:reload": "bash ./main/nginx-reload.sh",
+    "service:backend:install": "bash ./main/install-backend-service.sh",
+    "service:all:install": "bash ./main/install-all-services.sh",
+    "service:all:status": "bash ./main/service-all-status.sh",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:frontend": "npm --prefix frontend run test"
+  }
+}

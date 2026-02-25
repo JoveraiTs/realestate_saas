@@ -6,19 +6,22 @@ const userSchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true },
         email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+        avatarUrl: { type: String, trim: true, default: "" },
         password: { type: String, required: true, minlength: 6 },
         role: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' },
         tenant: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant' },
 
         isActive: { type: Boolean, default: true },
+        emailVerified: { type: Boolean, default: false },
+        passwordSetupRequired: { type: Boolean, default: false },
+        passwordSetupAt: { type: Date },
     },
     { timestamps: true }
 );
 
-userSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next();
+userSchema.pre("save", async function () {
+    if (!this.isModified("password")) return;
     this.password = await bcrypt.hash(this.password, 10);
-    //   next();
 });
 
 userSchema.methods.comparePassword = async function (password) {

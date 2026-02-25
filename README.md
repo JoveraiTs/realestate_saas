@@ -209,6 +209,9 @@ services:
 # ===========================================
 JWT_SECRET=your-super-secret-jwt-key-please-change-this
 
+# In production, backend startup fails if any required vars are missing:
+# JWT_SECRET, MONGO_MAIN_URI, BASE_DOMAIN, API_DOMAIN
+
 # ===========================================
 # OPTIONAL: Email Configuration
 # Skip if you don't need email notifications
@@ -224,6 +227,16 @@ SMTP_PASS=your-app-specific-password
 NODE_ENV=production
 API_TIMEOUT=30000
 RATE_LIMIT=100
+
+# ===========================================
+# MULTI-TENANT DOMAIN RESOLUTION
+# ===========================================
+BASE_DOMAIN=luxury-uaeproperty.com
+API_DOMAIN=api.luxury-uaeproperty.com
+SERVER_IP=YOUR_SERVER_PUBLIC_IP
+
+# Optional: trial duration for approvals
+DEFAULT_TRIAL_DAYS=14
 ```
 </details>
 
@@ -250,6 +263,74 @@ RATE_LIMIT=100
 </div>
 
 ## 🛠️ **Command Center**
+
+### **Root NPM Commands**
+```bash
+# Start backend from project root (email queue disabled by default)
+npm run start
+
+# Same as above (explicit backend start)
+npm run start:backend
+
+# Start backend with BullMQ/Redis queue enabled
+npm run start:backend:queue
+
+# Start frontend from project root
+npm run start:frontend
+
+# Backend dev mode (nodemon)
+npm run dev:backend
+
+# Seed test data (master admin + approved tenant + tenant admin + staff user)
+npm run seed
+
+# Verify seeded login + permissions (admin vs staff)
+npm run seed:verify
+
+# Validate and reload nginx config in running compose stack
+npm run nginx:reload
+
+# Install/update system nginx config for this project
+npm run nginx:install
+
+# If Docker is not installed, command falls back to system nginx reload
+
+# Frontend build/test from project root
+npm run build:frontend
+npm run test:frontend
+
+# Clean running app processes/ports and optional local test DB
+./main/cleanup.sh
+```
+
+### **Domain Routing (Nginx)**
+```bash
+# Backend API
+api.luxury-uaeproperty.com -> backend
+
+# Frontend (all tenant subdomains)
+*.luxury-uaeproperty.com -> frontend
+
+# Example tenant URL after registration
+tenantname.luxury-uaeproperty.com
+```
+
+Tenant subdomain registration notes:
+- Create a wildcard DNS record: `*.luxury-uaeproperty.com` pointing to your Nginx server IP.
+- Keep `api.luxury-uaeproperty.com` as a dedicated DNS record to the same Nginx server IP.
+- When tenant `subdomain` is saved in DB (for example `testrealty`), it is accessible at `testrealty.luxury-uaeproperty.com`.
+
+Default seed credentials:
+```bash
+# Master Admin
+admin@testrealestate.com / Admin@123
+
+# Tenant Admin
+admin@testrealty.com / Admin@123
+
+# Tenant Staff (limited role)
+staff@testrealty.com / Staff@123
+```
 
 ### **Basic Operations**
 ```bash
@@ -396,14 +477,20 @@ docker compose up -d --scale frontend=2
 # Authentication
 POST   /api/auth/register
 POST   /api/auth/login
+POST   /api/auth/master/login
 POST   /api/auth/logout
 
 # Tenants
-GET    /api/tenants
-POST   /api/tenants
-GET    /api/tenants/:id
-PUT    /api/tenants/:id
-DELETE /api/tenants/:id
+POST   /api/tenants/register                      (public agency signup)
+GET    /api/tenants/pending                       (super admin)
+PUT    /api/tenants/approve/:id                   (super admin)
+PUT    /api/tenants/reject/:id                    (super admin)
+PUT    /api/tenants/custom-domain/:id             (super admin)
+PUT    /api/tenants/verify-domain/:id             (super admin)
+
+# Public Website APIs (tenant-aware by host)
+GET    /api/public/website
+POST   /api/public/leads
 
 # Properties
 GET    /api/properties
@@ -414,7 +501,16 @@ DELETE /api/properties/:id
 
 # Health Check
 GET    /health
+GET    /api/healthz/config                           (super admin token required)
 ```
+
+Production flow mapping:
+- Phase 1 signup: `POST /api/tenants/register` with `name,email,phone,desiredDomain,plan,logo`.
+- Phase 2 approval: super admin uses `/api/auth/master/login`, then pending/approve/reject tenant endpoints.
+- Phase 3 domain routing: API resolves tenant using `Origin/Host/x-tenant-host` for subdomain or custom domain.
+- Phase 4 lead capture: tenant public website posts to `POST /api/public/leads`.
+- Phase 5 role redirect: login response includes `redirectTo` (`/super-admin`, `/admin`, `/agent`).
+- Phase 8 custom domains: set via `/api/tenants/custom-domain/:id`, then mark verified with `/api/tenants/verify-domain/:id` after DNS/SSL.
 </details>
 
 <div align="center">

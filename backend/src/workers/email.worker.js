@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { Worker, Queue } = require("bullmq");
 const redis = require("../config/redis");
-const transporter = require("../config/mailer");
+const { transporter, getDefaultFrom } = require("../config/mailer");
 
 const failedQueue = new Queue("email-dlq", {
   connection: redis,
@@ -14,7 +14,7 @@ new Worker(
     const { to, from, subject, html } = job.data;
 
     await transporter.sendMail({
-      from,
+      from: from || getDefaultFrom(),
       to,
       subject,
       html,
