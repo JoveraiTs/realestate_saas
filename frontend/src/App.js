@@ -68,13 +68,19 @@ const toPackageLines = (items) => (Array.isArray(items) ? items : [])
   .join('\n');
 
 const DEFAULT_FAQS = [
-  { question: 'How fast can I launch my real estate website?', answer: 'Most agencies can go live in less than 30 minutes with the one-click setup and ready templates.' },
+  { question: 'How fast can I launch my product website?', answer: 'Most teams can go live in less than 30 minutes with one-click setup and ready templates.' },
   { question: 'Can I use my own domain name?', answer: 'Yes. Pro and Enterprise plans support custom domains, and Enterprise supports multiple domains.' },
-  { question: 'Does this include CRM and lead management?', answer: 'Yes. Every plan includes CRM, with more advanced capacity and automation in higher plans.' },
-  { question: 'Is this suitable for luxury real estate agencies?', answer: 'Yes. The platform includes premium themes, high-end showcase layouts, and conversion-focused lead flows.' },
+  { question: 'Does this include admin CRM and lead management?', answer: 'Yes. Every plan includes admin CRM, with more advanced capacity and automation in higher plans.' },
+  { question: 'Can I choose different product types during registration?', answer: 'Yes. You can register your admin account by selecting Real Estate, Ecommerce, or Tourism.' },
 ];
 
 const SaasMarketingPage = () => {
+  const productLabelMap = {
+    realestate: 'Real Estate',
+    ecommerce: 'Ecommerce',
+    tourism: 'Tourism',
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -98,21 +104,23 @@ const SaasMarketingPage = () => {
     email: '',
     phone: '',
     desiredDomain: '',
+    productType: 'realestate',
     plan: 'trial',
   });
 
   const defaultServices = [
-    { icon: '🏠', title: 'Website + Listings', description: 'Build a modern real estate website and publish properties instantly.' },
-    { icon: '📞', title: 'Lead Capture CRM', description: 'Collect, assign, and follow up leads with full pipeline tracking.' },
-    { icon: '📊', title: 'Sales Dashboard', description: 'Track team activity, conversion rates, and deal progress in one place.' },
-    { icon: '⚡', title: 'One-Click Launch', description: 'Go live fast with your own domain, branding, and ready-to-use pages.' },
+    { icon: '🏠', title: 'Real Estate Stack', description: 'Launch agency websites, property listings, lead capture, and CRM workflows.' },
+    { icon: '🛒', title: 'Ecommerce Stack', description: 'Launch storefront pages, catalog flows, inquiry capture, and admin operations.' },
+    { icon: '✈️', title: 'Tourism Stack', description: 'Launch travel packages, destination pages, booking leads, and follow-up automation.' },
+    { icon: '⚡', title: 'One Platform Operations', description: 'Use one backend and product-specific frontends with product-based onboarding.' },
   ];
 
   const defaultComparisonRows = [
     { feature: 'Monthly Price', starter: 'AED 0', pro: 'AED 799', enterprise: 'AED 2,999' },
-    { feature: 'User Seats', starter: '1 user', pro: 'Up to 10 users', enterprise: 'Up to 100 users' },
-    { feature: 'Listing Capacity', starter: 'Up to 25 listings', pro: 'Up to 1,000 listings', enterprise: 'Up to 10,000 listings' },
+    { feature: 'Admin Users', starter: '1 admin', pro: 'Up to 10 admins', enterprise: 'Up to 100 admins' },
+    { feature: 'Operational Capacity', starter: 'Startup limits', pro: 'Growth limits', enterprise: 'Enterprise limits' },
     { feature: 'Domain Setup', starter: 'Subdomain only', pro: '1 custom domain', enterprise: 'Up to 5 custom domains' },
+    { feature: 'Product Access', starter: 'Single product', pro: 'Single product + advanced tools', enterprise: 'Product suite + enterprise controls' },
     { feature: 'Support Level', starter: 'Standard support', pro: 'Priority support', enterprise: 'Priority + SLA support' },
   ];
 
@@ -123,9 +131,9 @@ const SaasMarketingPage = () => {
   ];
 
   const defaultHero = {
-    title: 'Make Your Real Estate Website with CRM in Just One Click',
-    subtitle: 'Launch a premium agency website, capture leads, and manage your full sales pipeline from one dashboard in minutes.',
-    buttonText: 'Start Your Agency Setup',
+    title: 'Launch Your Product Website + Admin CRM in One Click',
+    subtitle: 'Choose Real Estate, Ecommerce, or Tourism and onboard your admin account with product-ready templates and workflows.',
+    buttonText: 'Start Product Admin Setup',
     image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80',
   };
 
@@ -186,10 +194,10 @@ const SaasMarketingPage = () => {
         if (configResponse.ok) {
           setSaasConfig(data);
           const seoTitle = data?.seo?.title || 'Luxury UAE Property SaaS - Real Estate Website + CRM';
-          const seoDescription = data?.seo?.description || 'Launch your real estate website with CRM in one click. Capture leads, manage listings, and grow faster with luxury-ready templates.';
+          const seoDescription = data?.seo?.description || 'Launch Real Estate, Ecommerce, or Tourism products with one backend, product frontends, and admin CRM onboarding.';
           const seoKeywords = Array.isArray(data?.seo?.keywords)
             ? data.seo.keywords.join(', ')
-            : 'real estate crm, property website, real estate saas, agency crm, luxury property';
+            : 'multi product saas, real estate crm, ecommerce platform, tourism platform, admin onboarding';
           const canonical = window.location.origin;
 
           document.title = seoTitle;
@@ -234,7 +242,7 @@ const SaasMarketingPage = () => {
       }
     };
 
-    document.title = 'Luxury UAE Property SaaS - Real Estate Website + CRM';
+    document.title = 'JoveraITS SaaS - Multi Product Website + Admin CRM';
     fetchConfig();
   }, []);
 
@@ -341,7 +349,7 @@ const SaasMarketingPage = () => {
     setAvailabilityMessage('');
 
     if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
-      setError('Agency name, email and phone are required');
+      setError('Business name, admin email and phone are required');
       return;
     }
 
@@ -360,6 +368,7 @@ const SaasMarketingPage = () => {
       body.append('email', formData.email);
       body.append('phone', formData.phone);
       body.append('desiredDomain', formData.desiredDomain);
+      body.append('productType', formData.productType);
       body.append('plan', formData.plan);
 
       const response = await fetch(apiUrl('/api/tenants/register'), { method: 'POST', body });
@@ -374,14 +383,15 @@ const SaasMarketingPage = () => {
       setSuccess(true);
       setSuccessMessage(
         autoApproved
-          ? 'Signup approved automatically for Free / Trial. Check your email for your admin username and create-password link.'
-          : 'Signup submitted. Tenant status is pending review.'
+            ? `Signup approved for ${productLabelMap[formData.productType] || 'selected product'}. Check admin email for username and create-password link.`
+            : `Signup submitted for ${productLabelMap[formData.productType] || 'selected product'}. Tenant status is pending review.`
       );
       setFormData({
         name: '',
         email: '',
         phone: '',
         desiredDomain: '',
+        productType: 'realestate',
         plan: 'trial',
       });
     } catch (err) {
@@ -405,7 +415,7 @@ const SaasMarketingPage = () => {
             <a href="#compare">Compare</a>
             <a href="#demos">Top Agencies</a>
             <a href="#faq">FAQ</a>
-            <a href="#signup" className="saas-cta-link">Sign Up as Agency</a>
+            <a href="#signup" className="saas-cta-link">Register Product Admin</a>
             <div className="saas-theme-switch">
               <button
                 type="button"
@@ -437,17 +447,16 @@ const SaasMarketingPage = () => {
             <p>{heroSubtitle}</p>
             <a href="#signup" className="btn btn-primary">{heroButtonText}</a>
             <div className="saas-hero-points">
-              <span>⚡ One-click launch</span>
-              <span>🏆 Luxury-ready templates</span>
-              <span>📈 CRM + lead automation</span>
+              <span>⚡ One-click product launch</span>
+              <span>🧩 Real Estate / Ecommerce / Tourism</span>
+              <span>👤 Admin CRM onboarding</span>
             </div>
           </div>
           <div className="saas-hero-media">
-            <img src={heroImage} alt="Real estate SaaS hero" className="saas-hero-photo" />
+            <img src={heroImage} alt="Multi product SaaS hero" className="saas-hero-photo" />
           </div>
         </div>
       </section>
-
       <section id="services" className="saas-section">
         <div className="saas-container">
           <h2>Services</h2>
@@ -555,16 +564,16 @@ const SaasMarketingPage = () => {
 
       <section id="signup" className="saas-section saas-muted">
         <div className="saas-container saas-signup-wrap">
-          <h2>Sign Up as Agency</h2>
+          <h2>Register Product Admin by Product</h2>
           <form className="saas-signup-form" onSubmit={submitSignup}>
             <div className="saas-signup-card">
               <div className="saas-form-grid">
                 <div className="saas-field">
-                  <label>Agency Name</label>
-                  <input name="name" value={formData.name} onChange={onInput} placeholder="Your Agency Name" required />
+                  <label>Business / Brand Name</label>
+                  <input name="name" value={formData.name} onChange={onInput} placeholder="Your Business Name" required />
                 </div>
                 <div className="saas-field">
-                  <label>Email Address</label>
+                  <label>Admin Email Address</label>
                   <input
                     name="email"
                     type="email"
@@ -576,12 +585,20 @@ const SaasMarketingPage = () => {
                   />
                 </div>
                 <div className="saas-field">
-                  <label>Phone Number</label>
+                  <label>Admin Phone Number</label>
                   <input name="phone" value={formData.phone} onChange={onInput} placeholder="+971..." required />
                 </div>
                 <div className="saas-field">
                   <label>Desired Domain</label>
                   <input name="desiredDomain" value={formData.desiredDomain} onChange={onInput} placeholder="youragency.com (optional)" />
+                </div>
+                <div className="saas-field">
+                  <label>Product</label>
+                  <select name="productType" value={formData.productType} onChange={onInput}>
+                    <option value="realestate">Real Estate</option>
+                    <option value="ecommerce">Ecommerce</option>
+                    <option value="tourism">Tourism</option>
+                  </select>
                 </div>
                 <div className="saas-field">
                   <label>Plan</label>
@@ -596,7 +613,7 @@ const SaasMarketingPage = () => {
               {error && <div className="error-message">{error}</div>}
               {success && <div className="saas-success">{successMessage}</div>}
               <button className="btn btn-primary saas-submit-btn" type="submit" disabled={loading || registeredEmailBlocked}>
-                {loading ? 'Submitting...' : 'Submit Agency Signup'}
+                {loading ? 'Submitting...' : `Register ${productLabelMap[formData.productType] || 'Product'} Admin`}
               </button>
 
               <div className="saas-lookup-box">
@@ -1847,6 +1864,7 @@ const RegistrationPage = ({ apiError }) => {
     email: '',
     phone: '',
     desiredDomain: '',
+    productType: 'realestate',
     plan: 'trial',
   });
 
@@ -1913,6 +1931,7 @@ const RegistrationPage = ({ apiError }) => {
     submitData.append('email', formData.email);
     submitData.append('phone', formData.phone);
     submitData.append('desiredDomain', formData.desiredDomain);
+    submitData.append('productType', formData.productType);
     submitData.append('plan', formData.plan);
     submitData.append('logo', logo);
 
@@ -1957,7 +1976,7 @@ const RegistrationPage = ({ apiError }) => {
               </svg>
             </div>
             <h2>Registration Successful!</h2>
-            <p>Thank you for registering with EstateCRM.</p>
+            <p>Thank you for registering your product admin account.</p>
             <p className="redirect-message">Redirecting to login page...</p>
             <div className="loading-spinner"></div>
           </div>
@@ -1977,8 +1996,8 @@ const RegistrationPage = ({ apiError }) => {
             </svg>
             <span>EstateCRM</span>
           </div>
-          <h2>Get started with your CRM</h2>
-          <p>Join 500+ real estate agencies using EstateCRM</p>
+          <h2>Get started with your product admin CRM</h2>
+          <p>Choose your product and register the initial admin account</p>
         </div>
 
         {/* Show API Error if any */}
@@ -2040,7 +2059,7 @@ const RegistrationPage = ({ apiError }) => {
             </div>
 
             <div className="form-group">
-              <label>Email Address <span className="required">*</span></label>
+              <label>Admin Email Address <span className="required">*</span></label>
               <input
                 type="email"
                 name="email"
@@ -2052,7 +2071,7 @@ const RegistrationPage = ({ apiError }) => {
             </div>
 
             <div className="form-group">
-              <label>Phone Number <span className="required">*</span></label>
+              <label>Admin Phone Number <span className="required">*</span></label>
               <input
                 type="tel"
                 name="phone"
@@ -2073,6 +2092,20 @@ const RegistrationPage = ({ apiError }) => {
                 placeholder="abcd.com"
                 className="form-input"
               />
+            </div>
+
+            <div className="form-group">
+              <label>Product <span className="required">*</span></label>
+              <select
+                name="productType"
+                value={formData.productType}
+                onChange={handleInputChange}
+                className="form-input"
+              >
+                <option value="realestate">Real Estate</option>
+                <option value="ecommerce">Ecommerce</option>
+                <option value="tourism">Tourism</option>
+              </select>
             </div>
 
             <div className="form-group">
@@ -2111,7 +2144,13 @@ const RegistrationPage = ({ apiError }) => {
                   Registering...
                 </>
               ) : (
-                'Register Your CRM'
+                `Register ${
+                  formData.productType === 'ecommerce'
+                    ? 'Ecommerce'
+                    : formData.productType === 'tourism'
+                      ? 'Tourism'
+                      : 'Real Estate'
+                } Admin`
               )}
             </button>
 
