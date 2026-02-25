@@ -1,6 +1,6 @@
 services:
   mongodb:
-    image: abdullah4jovera/mongodb:6
+    image: JoveraiTs/mongodb:6
     container_name: mongodb
     restart: always
     ports:
@@ -9,7 +9,7 @@ services:
       - mongo-data:/data/db
 
   redis:
-    image: abdullah4jovera/redis:latest
+    image: JoveraiTs/redis:latest
     container_name: redis
     ports:
       - "6379:6379"
@@ -18,7 +18,7 @@ services:
       - redis-data:/data
 
   backend:
-    image: abdullah4jovera/real-estate-backend:latest
+    image: JoveraiTs/real-estate-backend:latest
     container_name: backend
     restart: always
     ports:
@@ -35,7 +35,7 @@ services:
       - redis
 
   nginx:
-    image: abdullah4jovera/nginx:latest
+    image: JoveraiTs/nginx:latest
     container_name: nginx
     ports:
       - "8081:80"
@@ -45,7 +45,7 @@ services:
       - backend
 
   email-worker:
-    image: abdullah4jovera/real-estate-email-worker:latest
+    image: JoveraiTs/real-estate-email-worker:latest
     container_name: email-worker
     restart: always
     command: npm run worker
@@ -60,7 +60,7 @@ services:
       - redis
 
   frontend:
-    image: abdullah4jovera/real-estate-frontend:latest
+    image: JoveraiTs/real-estate-frontend:latest
     container_name: frontend
     restart: always
     ports:

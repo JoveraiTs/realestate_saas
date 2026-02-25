@@ -108,7 +108,7 @@ version: '3.8'
 
 services:
   mongodb:
-    image: abdullah4jovera/mongodb:6
+    image: JoveraiTs/mongodb:6
     container_name: real-estate-mongodb
     restart: unless-stopped
     ports:
@@ -117,7 +117,7 @@ services:
       - mongo-data:/data/db
 
   redis:
-    image: abdullah4jovera/redis:latest
+    image: JoveraiTs/redis:latest
     container_name: real-estate-redis
     restart: unless-stopped
     ports:
@@ -126,7 +126,7 @@ services:
       - redis-data:/data
 
   backend:
-    image: abdullah4jovera/real-estate-backend:latest
+    image: JoveraiTs/real-estate-backend:latest
     container_name: real-estate-backend
     restart: unless-stopped
     env_file:
@@ -138,7 +138,7 @@ services:
       - redis
 
   frontend:
-    image: abdullah4jovera/real-estate-frontend:latest
+    image: JoveraiTs/real-estate-frontend:latest
     container_name: real-estate-frontend
     restart: unless-stopped
     ports:
@@ -147,7 +147,7 @@ services:
       - backend
 
   email-worker:
-    image: abdullah4jovera/real-estate-email-worker:latest
+    image: JoveraiTs/real-estate-email-worker:latest
     container_name: real-estate-email-worker
     restart: unless-stopped
     env_file:
@@ -159,7 +159,7 @@ services:
       - redis
 
   nginx:
-    image: abdullah4jovera/nginx:latest
+    image: JoveraiTs/nginx:latest
     container_name: real-estate-nginx
     restart: unless-stopped
     ports:

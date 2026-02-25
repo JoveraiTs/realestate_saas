@@ -2,9 +2,9 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue?style=flat-square)](https://hub.docker.com/u/abdullah4jovera)
-[![Docker Pulls](https://img.shields.io/docker/pulls/abdullah4jovera/real-estate-backend?style=flat-square)](https://hub.docker.com/u/abdullah4jovera)
-[![GitHub Stars](https://img.shields.io/github/stars/abdullah4jovera/real-estate-saas?style=flat-square)](https://github.com/abdullah4jovera/real-estate-saas)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue?style=flat-square)](https://hub.docker.com/u/JoveraiTs)
+[![Docker Pulls](https://img.shields.io/docker/pulls/JoveraiTs/real-estate-backend?style=flat-square)](https://hub.docker.com/u/JoveraiTs)
+[![GitHub Stars](https://img.shields.io/github/stars/JoveraiTs/realestate_saas?style=flat-square)](https://github.com/JoveraiTs/realestate_saas)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
@@ -55,7 +55,26 @@
 
 ```bash
 # The fastest way to get started
-bash <(curl -s https://raw.githubusercontent.com/abdullah4jovera/real-estate-saas/main/quickstart.sh)
+bash <(curl -s https://raw.githubusercontent.com/JoveraiTs/realestate_saas/main/main/quickstart.sh)
+```
+
+### ⚙️ **Non-Interactive Quick Deploy (Recommended for Servers/CI)**
+
+```bash
+# Clone once, then run unattended production-style setup (systemd + nginx + 3 tenant frontends)
+git clone https://github.com/JoveraiTs/realestate_saas.git
+cd realestate_saas
+./main/quickstart.sh --systemd --yes
+```
+
+```bash
+# Unattended Docker demo setup
+./main/quickstart.sh --docker --yes
+```
+
+```bash
+# Show all available quickstart options
+./main/quickstart.sh --help
 ```
 
 <details>
@@ -63,7 +82,7 @@ bash <(curl -s https://raw.githubusercontent.com/abdullah4jovera/real-estate-saa
 
 ### Step 1: Download Configuration
 ```bash
-curl -O https://raw.githubusercontent.com/abdullah4jovera/real-estate-saas/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/JoveraiTs/realestate_saas/main/docker-compose.dev.yml
 ```
 
 ### Step 2: Setup Environment
@@ -115,7 +134,7 @@ volumes:
 services:
   # Database Layer
   mongodb:
-    image: abdullah4jovera/mongodb:6
+    image: JoveraiTs/mongodb:6
     container_name: real-estate-mongodb
     restart: unless-stopped
     ports:
@@ -132,7 +151,7 @@ services:
 
   # Cache Layer
   redis:
-    image: abdullah4jovera/redis:latest
+    image: JoveraiTs/redis:latest
     container_name: real-estate-redis
     restart: unless-stopped
     ports:
@@ -145,7 +164,7 @@ services:
 
   # API Layer
   backend:
-    image: abdullah4jovera/real-estate-backend:latest
+    image: JoveraiTs/real-estate-backend:latest
     container_name: real-estate-backend
     restart: unless-stopped
     ports:
@@ -168,7 +187,7 @@ services:
 
   # Background Worker
   email-worker:
-    image: abdullah4jovera/real-estate-email-worker:latest
+    image: JoveraiTs/real-estate-email-worker:latest
     container_name: real-estate-email-worker
     restart: unless-stopped
     command: npm run worker
@@ -188,7 +207,7 @@ services:
 
   # Frontend Layer
   frontend:
-    image: abdullah4jovera/real-estate-frontend:latest
+    image: JoveraiTs/real-estate-frontend:latest
     container_name: real-estate-frontend
     restart: unless-stopped
     ports:
@@ -393,13 +412,13 @@ docker compose up -d --build
 
 | Image | Version | Size | Pull Command |
 |-------|---------|------|--------------|
-| **Backend** | `latest` | 349 MB | `docker pull abdullah4jovera/real-estate-backend` |
-| **Frontend** | `latest` | 1.22 GB | `docker pull abdullah4jovera/real-estate-frontend` |
-| **Email Worker** | `latest` | 349 MB | `docker pull abdullah4jovera/real-estate-email-worker` |
-| **MongoDB** | `6` | 1.06 GB | `docker pull abdullah4jovera/mongodb` |
-| **Redis** | `latest` | 204 MB | `docker pull abdullah4jovera/redis` |
+| **Backend** | `latest` | 349 MB | `docker pull JoveraiTs/real-estate-backend` |
+| **Frontend** | `latest` | 1.22 GB | `docker pull JoveraiTs/real-estate-frontend` |
+| **Email Worker** | `latest` | 349 MB | `docker pull JoveraiTs/real-estate-email-worker` |
+| **MongoDB** | `6` | 1.06 GB | `docker pull JoveraiTs/mongodb` |
+| **Redis** | `latest` | 204 MB | `docker pull JoveraiTs/redis` |
 
-[![Docker Hub](https://img.shields.io/badge/Visit-Docker_Hub-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://hub.docker.com/u/abdullah4jovera)
+[![Docker Hub](https://img.shields.io/badge/Visit-Docker_Hub-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://hub.docker.com/u/JoveraiTs)
 
 </div>
 
@@ -573,15 +592,15 @@ Production flow mapping:
 
 <div align="center">
 
-[![GitHub Issues](https://img.shields.io/github/issues/abdullah4jovera/real-estate-saas?style=for-the-badge)](https://github.com/abdullah4jovera/real-estate-saas/issues)
-[![GitHub Discussions](https://img.shields.io/github/discussions/abdullah4jovera/real-estate-saas?style=for-the-badge)](https://github.com/abdullah4jovera/real-estate-saas/discussions)
+[![GitHub Issues](https://img.shields.io/github/issues/JoveraiTs/realestate_saas?style=for-the-badge)](https://github.com/JoveraiTs/realestate_saas/issues)
+[![GitHub Discussions](https://img.shields.io/github/discussions/JoveraiTs/realestate_saas?style=for-the-badge)](https://github.com/JoveraiTs/realestate_saas/discussions)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/realestatesaas)
 
 </div>
 
 - 📖 **Documentation**: [docs.realestatesaas.com](https://docs.realestatesaas.com)
-- 🐛 **Report Bug**: [GitHub Issues](https://github.com/abdullah4jovera/real-estate-saas/issues)
-- 💡 **Feature Request**: [GitHub Discussions](https://github.com/abdullah4jovera/real-estate-saas/discussions)
+- 🐛 **Report Bug**: [GitHub Issues](https://github.com/JoveraiTs/realestate_saas/issues)
+- 💡 **Feature Request**: [GitHub Discussions](https://github.com/JoveraiTs/realestate_saas/discussions)
 - 📧 **Email**: support@realestatesaas.com
 
 <div align="center">
@@ -611,17 +630,17 @@ of this software and associated documentation files.
   <table>
   <tr>
   <td>
-  <a href="https://github.com/abdullah4jovera">
+  <a href="https://github.com/JoveraiTs">
     <img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
   </a>
   </td>
   <td>
-  <a href="https://hub.docker.com/u/abdullah4jovera">
+  <a href="https://hub.docker.com/u/JoveraiTs">
     <img src="https://img.shields.io/badge/Docker_Hub-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Hub">
   </a>
   </td>
   <td>
-  <a href="https://linkedin.com/in/abdullah4jovera">
+  <a href="https://linkedin.com/in/JoveraiTs">
     <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
   </a>
   </td>

@@ -10,6 +10,9 @@
 
 set -e
 
+DEPLOY_MODE=""
+AUTO_YES=false
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -129,7 +132,7 @@ volumes:
 
 services:
   mongodb:
-    image: abdullah4jovera/mongodb:6
+    image: JoveraiTs/mongodb:6
     container_name: real-estate-mongodb
     restart: unless-stopped
     ports:
@@ -145,7 +148,7 @@ services:
       retries: 5
 
   redis:
-    image: abdullah4jovera/redis:latest
+    image: JoveraiTs/redis:latest
     container_name: real-estate-redis
     restart: unless-stopped
     ports:
@@ -157,7 +160,7 @@ services:
     command: redis-server --appendonly yes
 
   backend:
-    image: abdullah4jovera/real-estate-backend:latest
+    image: JoveraiTs/real-estate-backend:latest
     container_name: real-estate-backend
     restart: unless-stopped
     ports:
@@ -183,7 +186,7 @@ services:
       - real-estate-network
 
   email-worker:
-    image: abdullah4jovera/real-estate-email-worker:latest
+    image: JoveraiTs/real-estate-email-worker:latest
     container_name: real-estate-email-worker
     restart: unless-stopped
     command: npm run worker
@@ -206,7 +209,7 @@ services:
       - real-estate-network
 
   frontend:
-    image: abdullah4jovera/real-estate-frontend:latest
+    image: JoveraiTs/real-estate-frontend:latest
     container_name: real-estate-frontend
     restart: unless-stopped
     ports:
@@ -258,11 +261,11 @@ pull_images() {
     echo -e "\n${BLUE}📥 Pulling Docker images from Docker Hub...${NC}"
     
     images=(
-        "abdullah4jovera/mongodb:6"
-        "abdullah4jovera/redis:latest"
-        "abdullah4jovera/real-estate-backend:latest"
-        "abdullah4jovera/real-estate-frontend:latest"
-        "abdullah4jovera/real-estate-email-worker:latest"
+        "JoveraiTs/mongodb:6"
+        "JoveraiTs/redis:latest"
+        "JoveraiTs/real-estate-backend:latest"
+        "JoveraiTs/real-estate-frontend:latest"
+        "JoveraiTs/real-estate-email-worker:latest"
     )
     
     total=${#images[@]}
@@ -352,46 +355,163 @@ cleanup() {
 # Handle script interruption
 trap cleanup SIGINT SIGTERM
 
-# Main function
-main() {
-    print_banner
-    
+print_usage() {
+  cat <<EOF
+Usage: ./main/quickstart.sh [options]
+
+Options:
+  --systemd       Run systemd production-style deployment
+  --docker        Run docker demo deployment
+  --yes, -y       Non-interactive mode (auto-confirm prompts)
+  --help, -h      Show this help
+
+Examples:
+  ./main/quickstart.sh --systemd --yes
+  ./main/quickstart.sh --docker --yes
+EOF
+}
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --systemd)
+        DEPLOY_MODE="systemd"
+        shift
+        ;;
+      --docker)
+        DEPLOY_MODE="docker"
+        shift
+        ;;
+      --yes|-y)
+        AUTO_YES=true
+        shift
+        ;;
+      --help|-h)
+        print_usage
+        exit 0
+        ;;
+      *)
+        echo -e "${RED}❌ Unknown option: $1${NC}"
+        echo
+        print_usage
+        exit 1
+        ;;
+    esac
+  done
+}
+
+# Systemd quickstart path
+run_systemd_quickstart() {
+  echo -e "\n${BLUE}🛠️  Running systemd quickstart (backend + 3 tenant frontends)...${NC}"
+
+  if ! command -v npm &> /dev/null; then
+    echo -e "${RED}❌ npm is required for systemd quickstart${NC}"
+    exit 1
+  fi
+
+  if ! command -v systemctl &> /dev/null; then
+    echo -e "${RED}❌ systemd is required for this mode${NC}"
+    exit 1
+  fi
+
+  chmod +x ./main/install-all-services.sh ./main/install-system-nginx.sh ./main/service-all-status.sh || true
+
+  echo -e "${CYAN}▶ Building tenant apps for production...${NC}"
+  (cd tenant-website-next && npm ci --no-audit --no-fund && npm run build)
+  (cd tenant-website-ecommerce && npm ci --no-audit --no-fund && npm run build)
+  (cd tenant-website-tourism && npm ci --no-audit --no-fund && npm run build)
+
+  echo -e "${CYAN}▶ Installing systemd services...${NC}"
+  ./main/install-all-services.sh
+
+  echo -e "${CYAN}▶ Installing nginx routing config...${NC}"
+  ./main/install-system-nginx.sh
+
+  echo -e "${CYAN}▶ Final service status...${NC}"
+  ./main/service-all-status.sh
+
+  echo -e "\n${GREEN}✅ Systemd quickstart completed with multi-product frontends.${NC}"
+}
+
+# Docker quickstart path
+run_docker_quickstart() {
     echo -e "${WHITE}Welcome to Real Estate SaaS Quick Installer!${NC}"
     echo -e "${CYAN}This script will deploy the complete platform in seconds.${NC}"
     echo ""
-    
-    # Check if user wants to continue
-    read -p "$(echo -e "${YELLOW}Continue with installation? (y/n): ${NC}")" -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${RED}Installation cancelled.${NC}"
-        exit 0
+
+    if [[ "$AUTO_YES" != true ]]; then
+      read -p "$(echo -e "${YELLOW}Continue with installation? (y/n): ${NC}")" -n 1 -r
+      echo ""
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+          echo -e "${RED}Installation cancelled.${NC}"
+          exit 0
+      fi
+    else
+      echo -e "${YELLOW}⚠️  Non-interactive mode: continuing automatically.${NC}"
     fi
     
     # Installation steps
     check_prerequisites
     create_compose_file
     create_env_file
-    
-    echo -e "\n${PURPLE}⚡ Ready to deploy!${NC}"
-    read -p "$(echo -e "${YELLOW}Press Enter to start deployment...${NC}")"
+
+    if [[ "$AUTO_YES" != true ]]; then
+      echo -e "\n${PURPLE}⚡ Ready to deploy!${NC}"
+      read -p "$(echo -e "${YELLOW}Press Enter to start deployment...${NC}")"
+    fi
     
     pull_images
     start_containers
     show_success
     
     # Ask if user wants to view logs
-    echo ""
-    read -p "$(echo -e "${YELLOW}View logs now? (y/n): ${NC}")" -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if [[ "$AUTO_YES" != true ]]; then
+      echo ""
+      read -p "$(echo -e "${YELLOW}View logs now? (y/n): ${NC}")" -n 1 -r
+      echo ""
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo -e "${CYAN}Showing logs (Ctrl+C to exit)...${NC}"
         docker compose logs -f
+      fi
     fi
     
     echo -e "\n${GREEN}Thank you for using Real Estate SaaS!${NC}"
     echo -e "${WHITE}Made with ❤️ by Abdullah${NC}"
 }
 
+  # Main function
+  main() {
+    parse_args "$@"
+    print_banner
+
+    if [[ "$DEPLOY_MODE" == "docker" ]]; then
+      run_docker_quickstart
+      return
+    fi
+
+    if [[ "$DEPLOY_MODE" == "systemd" ]]; then
+      run_systemd_quickstart
+      return
+    fi
+
+    echo -e "${WHITE}Choose deployment mode:${NC}"
+    echo -e "  ${GREEN}1)${NC} Docker quickstart (demo stack)"
+    echo -e "  ${GREEN}2)${NC} Systemd quickstart (production style, multi-product)"
+    echo ""
+
+    if [[ "$AUTO_YES" == true ]]; then
+      DEPLOY_CHOICE="2"
+      echo -e "${YELLOW}⚠️  Non-interactive mode: defaulting to systemd quickstart.${NC}"
+    else
+      read -p "$(echo -e "${YELLOW}Enter choice (1/2, default 2): ${NC}")" DEPLOY_CHOICE
+    fi
+
+    if [[ "${DEPLOY_CHOICE:-2}" == "1" ]]; then
+      run_docker_quickstart
+    else
+      run_systemd_quickstart
+    fi
+  }
+
 # Run main function
-main
+main "$@"
