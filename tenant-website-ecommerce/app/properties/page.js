@@ -1,303 +1,202 @@
 import Link from "next/link";
-import { getTenantWebsiteData, createPageTitle, getPublicProperties } from "@/lib/serverApi";
-import SortSelect from "@/components/SortSelect";
+import { createPageTitle, getPublicProperties, getTenantWebsiteData } from "@/lib/serverApi";
+import styles from "./page.module.css";
 
-const propertyImages = [
-  "https://www.figma.com/api/mcp/asset/eef6bef5-0a2e-4c12-986e-37b52447ae64",
-  "https://www.figma.com/api/mcp/asset/96d6474f-fb2f-4e0f-a97a-5e8aaac08da0",
-  "https://www.figma.com/api/mcp/asset/66d45dd8-79f3-4b5c-9a3d-fe34565459e7",
-];
+const fallbackDeals = [
+  "Wireless Earbuds Pro",
+  "Minimal Leather Bag",
+  "Studio Desk Lamp",
+  "Performance Sneakers",
+  "Mirrorless Camera Kit",
+  "Premium Smart Watch",
+  "Gaming Keyboard RGB",
+  "Fragrance Collection",
+  "Travel Backpack Pro",
+  "Portable Monitor 4K",
+].map((title, index) => ({
+  id: `deal-${index}`,
+  title,
+  category: ["Electronics", "Fashion", "Lifestyle", "Accessories"][index % 4],
+  city: "UAE",
+  coverPhotoUrl: `https://images.unsplash.com/photo-${[
+    "1505740420928-5e560c06d30e",
+    "1542291026-7eec264c27ff",
+    "1523275335684-37898b6baf30",
+    "1517841905240-472988babdf9",
+    "1519183071298-a2962be96d19",
+    "1521572163474-6864f9cf17ab",
+    "1491553895911-0055eca6402d",
+    "1522335789203-aabd1fc54bc9",
+    "1471115853179-bb1d604434e0",
+    "1517336714739-489689fd1ca8",
+  ][index]}?auto=format&fit=crop&w=1200&q=80`,
+  price: 179 + index * 49,
+  createdAt: new Date(Date.now() - index * 1000 * 60 * 60).toISOString(),
+}));
+
+const toAmount = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const parsed = Number(String(value || "").replace(/[^\d.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const formatAed = (value) => `AED ${toAmount(value).toLocaleString()}`;
+
+const normalizeDeal = (item, index) => {
+  const base = toAmount(item?.price) || 149 + index * 30;
+  const discountPct = [12, 18, 25, 30, 35][index % 5];
+  const discounted = Math.max(1, Math.round(base * (1 - discountPct / 100)));
+
+  return {
+    id: String(item?._id || item?.id || `flash-${index}`),
+    title: String(item?.title || "Flash Deal Product"),
+    category: String(item?.category || "General"),
+    city: String(item?.city || item?.location || "UAE"),
+    image:
+      item?.coverPhotoUrl
+      || (Array.isArray(item?.gallery) ? item.gallery[0] : "")
+      || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
+    price: base,
+    salePrice: discounted,
+    discountPct,
+    href: `/properties/${item?._id || item?.id || ""}`,
+    createdAt: item?.createdAt || new Date().toISOString(),
+  };
+};
 
 export async function generateMetadata() {
   const data = await getTenantWebsiteData();
   const tenantName = data?.tenant?.name;
+
   return {
-    title: createPageTitle(tenantName, "Properties"),
-    description: "Browse available listings and investment opportunities.",
+    title: createPageTitle(tenantName, "Flash Sale"),
+    description: "Limited-time offers and discounted products across categories.",
   };
 }
 
-const toNumberFromPrice = (value) => {
-  const raw = String(value || "");
-  const number = Number(raw.replace(/[^0-9.]/g, ""));
-  return Number.isFinite(number) ? number : 0;
-};
+export default async function FlashSalePage({ searchParams }) {
+  const data = await getTenantWebsiteData();
+  const tenantName = data?.tenant?.name || "Active eCommerce";
 
-export default async function PropertiesPage({ searchParams }) {
-  await getTenantWebsiteData();
-  const allProperties = await getPublicProperties();
+  const publicProducts = await getPublicProperties();
+  const source = publicProducts.length > 0 ? publicProducts : fallbackDeals;
+  const deals = source.map(normalizeDeal);
 
-  const asList = (value) => {
-    const list = Array.isArray(value) ? value : value ? [value] : [];
-    const out = [];
-    const seen = new Set();
-    for (const item of list) {
-      const key = String(item || "").trim();
-      if (!key) continue;
-      const lowered = key.toLowerCase();
-      if (seen.has(lowered)) continue;
-      seen.add(lowered);
-      out.push(key);
-    }
-    return out;
-  };
+  const selectedCategory = String(searchParams?.category || "").trim();
+  const selectedSort = String(searchParams?.sort || "discount").trim();
 
-  const asSingle = (value) => {
-    if (Array.isArray(value)) {
-      const first = value.find((v) => String(v || "").trim());
-      return String(first || "").trim();
-    }
-    return String(value || "").trim();
-  };
+  const categories = Array.from(
+    deals.reduce((acc, item) => {
+      const key = String(item.category || "General").trim();
+      if (!key) return acc;
+      acc.set(key, (acc.get(key) || 0) + 1);
+      return acc;
+    }, new Map())
+  )
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
 
-  const listingTypeSelected = asSingle(searchParams?.listingType);
-  const citySelected = asList(searchParams?.city);
-  const categorySelected = asList(searchParams?.category);
-  const bedroomsSelected = asList(searchParams?.bedrooms);
-  const sortSelected = String(searchParams?.sort || "newest").trim() || "newest";
-
-  const filters = {
-    listingType: listingTypeSelected,
-    city: citySelected,
-    category: categorySelected,
-    bedrooms: bedroomsSelected,
-    sort: sortSelected,
-  };
-
-  const properties = allProperties
-    .filter((p) => (filters.listingType ? String(p?.listingType || "sale") === filters.listingType : true))
-    .filter((p) => (filters.city.length ? filters.city.includes(String(p?.city || "").trim()) : true))
-    .filter((p) => (filters.category.length ? filters.category.includes(String(p?.category || "").trim()) : true))
-    .filter((p) => (filters.bedrooms.length ? filters.bedrooms.includes(String(p?.bedrooms || "")) : true));
-
-  const sortedProperties = (() => {
-    const list = [...properties];
-    if (filters.sort === "price_asc") {
-      return list.sort((a, b) => toNumberFromPrice(a?.price) - toNumberFromPrice(b?.price));
-    }
-    if (filters.sort === "price_desc") {
-      return list.sort((a, b) => toNumberFromPrice(b?.price) - toNumberFromPrice(a?.price));
-    }
-    // newest default
-    return list.sort((a, b) => String(b?.createdAt || "").localeCompare(String(a?.createdAt || "")));
-  })();
-
-  const counts = (values) => {
-    const map = new Map();
-    values.forEach((value) => {
-      const key = String(value || "").trim();
-      if (!key) return;
-      map.set(key, (map.get(key) || 0) + 1);
+  const filtered = deals
+    .filter((item) => (selectedCategory ? item.category === selectedCategory : true))
+    .sort((a, b) => {
+      if (selectedSort === "newest") return String(b.createdAt).localeCompare(String(a.createdAt));
+      if (selectedSort === "price_low") return a.salePrice - b.salePrice;
+      if (selectedSort === "price_high") return b.salePrice - a.salePrice;
+      return b.discountPct - a.discountPct;
     });
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-  };
 
-  const emirates = counts(allProperties.map((p) => p.city || ""));
-  const propertyTypes = counts(allProperties.map((p) => p.category || ""));
-  const bedroomCounts = counts(allProperties.map((p) => (p.bedrooms ? String(p.bedrooms) : "")));
-  const listingTypeCounts = counts(allProperties.map((p) => String(p?.listingType || "sale")));
-  const resultsCount = sortedProperties.length;
-
-  const buildParams = (next = {}) => {
+  const buildHref = (next = {}) => {
     const params = new URLSearchParams();
+    const category = typeof next.category === "undefined" ? selectedCategory : String(next.category || "").trim();
+    const sort = typeof next.sort === "undefined" ? selectedSort : String(next.sort || "discount").trim();
 
-    const applyList = (key, list) => {
-      const values = Array.isArray(list) ? list : list ? [list] : [];
-      values.map((v) => String(v || "").trim()).filter(Boolean).forEach((v) => params.append(key, v));
-    };
+    if (category) params.set("category", category);
+    if (sort && sort !== "discount") params.set("sort", sort);
 
-    const merged = {
-      listingType: next.listingType ?? filters.listingType,
-      city: next.city ?? filters.city,
-      category: next.category ?? filters.category,
-      bedrooms: next.bedrooms ?? filters.bedrooms,
-      sort: next.sort ?? filters.sort,
-    };
-
-    if (merged.listingType) {
-      params.set("listingType", String(merged.listingType));
-    }
-    applyList("city", merged.city);
-    applyList("category", merged.category);
-    applyList("bedrooms", merged.bedrooms);
-
-    if (merged.sort && merged.sort !== "newest") {
-      params.set("sort", merged.sort);
-    }
-
-    return params;
-  };
-
-  const buildHref = (next) => {
-    const params = buildParams(next);
     const qs = params.toString();
     return qs ? `/properties?${qs}` : "/properties";
   };
 
-  const toggleInList = (list, value) => {
-    const v = String(value || "").trim();
-    if (!v) return list;
-    const next = Array.isArray(list) ? [...list] : [];
-    const index = next.findIndex((item) => String(item).toLowerCase() === v.toLowerCase());
-    if (index >= 0) {
-      next.splice(index, 1);
-      return next;
-    }
-    next.push(v);
-    return next;
-  };
-
-  const isActive = (list, value) => {
-    const v = String(value || "").trim().toLowerCase();
-    return Array.isArray(list) && list.some((item) => String(item || "").trim().toLowerCase() === v);
-  };
-
-  const isListingType = (value) => {
-    const v = String(value || "").trim().toLowerCase();
-    return v && String(filters.listingType || "").trim().toLowerCase() === v;
-  };
-
   return (
-    <div className="property-layout">
-      <aside className="filter-panel">
-        <Link className="reset-btn" href="/properties">Reset Filteration</Link>
-
-        <div className="filter-group">
-          <h4>Listing</h4>
-          {(
-            listingTypeCounts.length
-              ? listingTypeCounts
-              : [["sale", resultsCount], ["rent", resultsCount], ["off_plan", resultsCount]]
-          )
-            .map(([item, count]) => {
-              const label = item === "off_plan" ? "Off-plan" : String(item).replace(/^./, (c) => c.toUpperCase());
-              return (
-                <Link key={item} className="filter-item" href={buildHref({ listingType: item })}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <span className={`dot${isListingType(item) ? " active" : ""}`} />{label}
-                  </span>
-                  <span>{count}</span>
-                </Link>
-              );
-            })}
+    <div className={styles.flashPage}>
+      <section className={styles.hero}>
+        <div className={styles.heroCopy}>
+          <p>{tenantName}</p>
+          <h1>Flash Sale</h1>
+          <span>Daily limited-time drops with unbeatable prices across top product categories.</span>
+          <div className={styles.heroActions}>
+            <Link href="#flash-grid">Shop Deals</Link>
+            <Link href="/">Back to Home</Link>
+          </div>
         </div>
 
-        <div className="filter-group">
-          <h4>Emirates</h4>
-          {(emirates.length ? emirates : [["Dubai", resultsCount]]).slice(0, 8).map(([item, count]) => (
-            <Link key={item} className="filter-item" href={buildHref({ city: toggleInList(filters.city, item) })}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <span className={`dot${isActive(filters.city, item) ? " active" : ""}`} />{item}
-              </span>
-              <span>{count}</span>
+        <div className={styles.countdownCard}>
+          <h3>Deal Ends In</h3>
+          <div className={styles.countdownGrid}>
+            <div><strong>08</strong><span>Hours</span></div>
+            <div><strong>24</strong><span>Minutes</span></div>
+            <div><strong>36</strong><span>Seconds</span></div>
+          </div>
+          <small>New deals are refreshed every day.</small>
+        </div>
+      </section>
+
+      <section className={styles.toolbar}>
+        <div className={styles.categories}>
+          <Link href={buildHref({ category: "" })} className={!selectedCategory ? styles.active : ""}>All</Link>
+          {categories.map((category) => (
+            <Link
+              key={category.name}
+              href={buildHref({ category: category.name })}
+              className={selectedCategory === category.name ? styles.active : ""}
+            >
+              {category.name} <span>({category.count})</span>
             </Link>
           ))}
         </div>
 
-        <div className="filter-group">
-          <h4>Property type</h4>
-          {(propertyTypes.length ? propertyTypes : [["Property", resultsCount]]).slice(0, 8).map(([item, count]) => (
-            <Link key={item} className="filter-item" href={buildHref({ category: toggleInList(filters.category, item) })}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <span className={`dot${isActive(filters.category, item) ? " active" : ""}`} />{item}
-              </span>
-              <span>{count}</span>
-            </Link>
-          ))}
+        <div className={styles.sortWrap}>
+          <span>Sort:</span>
+          <Link href={buildHref({ sort: "discount" })} className={selectedSort === "discount" ? styles.activeSort : ""}>Best Discount</Link>
+          <Link href={buildHref({ sort: "newest" })} className={selectedSort === "newest" ? styles.activeSort : ""}>Newest</Link>
+          <Link href={buildHref({ sort: "price_low" })} className={selectedSort === "price_low" ? styles.activeSort : ""}>Price Low</Link>
+          <Link href={buildHref({ sort: "price_high" })} className={selectedSort === "price_high" ? styles.activeSort : ""}>Price High</Link>
         </div>
+      </section>
 
-        <div className="filter-group">
-          <h4>Number of bedroom</h4>
-          {(bedroomCounts.length ? bedroomCounts : [["", resultsCount]]).slice(0, 8).map(([item, count], index) => {
-            const label = item ? `${item} bed room` : "-";
-            return (
-              <Link key={`${item}-${index}`} className="filter-item" href={buildHref({ bedrooms: toggleInList(filters.bedrooms, item) })}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <span className={`dot${isActive(filters.bedrooms, item) ? " active" : ""}`} />{label}
-                </span>
-                <span>{count}</span>
-              </Link>
-            );
-          })}
-        </div>
+      <section className={styles.stats}>
+        <article><strong>{filtered.length}</strong><span>Live Deals</span></article>
+        <article><strong>{categories.length}</strong><span>Categories</span></article>
+        <article><strong>24/7</strong><span>New Offers</span></article>
+      </section>
 
-        <div className="filter-group">
-          <h4>Initial payment</h4>
-          <div className="filter-item"><span>25%</span><span>75%</span></div>
-        </div>
-      </aside>
-
-      <section>
-        <div className="property-topbar">
-          <div className="property-results">
-            <strong>{resultsCount}</strong>
-            <span>Results</span>
-          </div>
-          <div className="property-sort">
-            <div className="toggle-pill">
-              <Link className={isListingType("sale") ? "active" : ""} href={buildHref({ listingType: "sale" })}>Sale</Link>
-              <Link className={isListingType("rent") ? "active" : ""} href={buildHref({ listingType: "rent" })}>Rent</Link>
-              <Link className={isListingType("off_plan") ? "active" : ""} href={buildHref({ listingType: "off_plan" })}>Off-plan</Link>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span>Sort by</span>
-              <SortSelect defaultValue={filters.sort} />
-            </div>
-          </div>
-        </div>
-
-        <div className="property-grid">
-          {sortedProperties.length === 0 ? (
-            <article className="empty-state">
-            <h3>No properties published yet</h3>
-              <p>Published listings will appear here automatically.</p>
+      <section id="flash-grid" className={styles.grid}>
+        {filtered.length === 0 ? (
+          <article className={styles.emptyState}>
+            <h3>No flash deals found</h3>
+            <p>Try another category or check back in a few minutes.</p>
           </article>
         ) : (
-            sortedProperties.map((property, index) => (
-              <article key={property._id || property.id} className="property-card">
-                <Link
-                  href={`/properties/${property._id || property.id}`}
-                  className="property-card-overlay"
-                  aria-label={`View ${property.title || "property"}`}
-                />
-                <div
-                  className="property-image"
-                >
-                  <img
-                    src={
-                      property?.coverPhotoUrl ||
-                      (Array.isArray(property?.gallery) ? property.gallery[0] : "") ||
-                      propertyImages[index % propertyImages.length]
-                    }
-                    alt={property?.title ? `${property.title} photo` : "Property photo"}
-                    loading={index < 3 ? "eager" : "lazy"}
-                    decoding="async"
-                    fetchPriority={index < 3 ? "high" : "auto"}
-                  />
-                  <span className="badge">
-                    {String(property?.listingType || "sale") === "off_plan"
-                      ? "off plan"
-                      : String(property?.listingType || "sale")}
-                  </span>
-                  {index % 3 === 2 ? <span className="badge">featured</span> : null}
+          filtered.map((item, index) => (
+            <Link key={item.id} href={item.href} className={styles.card}>
+              <div className={styles.media}>
+                <img src={item.image} alt={item.title} loading={index < 6 ? "eager" : "lazy"} decoding="async" />
+                <span className={styles.badge}>-{item.discountPct}%</span>
+              </div>
+
+              <div className={styles.body}>
+                <p>{item.category}</p>
+                <h3>{item.title}</h3>
+                <small>{item.city}</small>
+                <div className={styles.priceRow}>
+                  <strong>{formatAed(item.salePrice)}</strong>
+                  <span>{formatAed(item.price)}</span>
                 </div>
-                <div className="property-info">
-                  <h3>{property.title}</h3>
-                  <div className="property-sub">{property.location || "Dubai, Jomera"}</div>
-                  <div className="property-icons">
-                    <span>🛏 {property?.bedrooms || "-"}</span>
-                    <span>🛁 {property?.bathrooms || "-"}</span>
-                    <span>📐 {property?.area ? `${property.area} ${property.areaUnit || ""}` : "-"}</span>
-                    <span className="price">{property.price || "$280,000"}</span>
-                  </div>
-                  <div className="property-link-row">
-                      <Link href="/contact">Request details</Link>
-                  </div>
-                </div>
-            </article>
+              </div>
+            </Link>
           ))
         )}
-        </div>
       </section>
     </div>
   );
