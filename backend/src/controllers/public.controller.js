@@ -2,8 +2,46 @@ const { connectTenantDB } = require("../utils/tenantDb");
 const leadSchema = require("../models/Lead");
 const propertySchema = require("../models/Property");
 const agentSchema = require("../models/Agent");
+const Tenant = require("../models/Tenant");
 
 const getTenantModel = (connection, name, schema) => connection.models[name] || connection.model(name, schema);
+
+const parseSubdomainFromHost = (host = "") => {
+  const clean = String(host || "").trim().toLowerCase().replace(/:\d+$/, "");
+  if (!clean) return "";
+  const parts = clean.split(".").filter(Boolean);
+  if (parts.length < 3) return "";
+  const subdomain = parts[0];
+  if (["www", "api", "localhost", "127", "0"].includes(subdomain)) return "";
+  return subdomain;
+};
+
+exports.resolveTenantProductType = async (req, res) => {
+  try {
+    const querySubdomain = String(req.query.subdomain || "").trim().toLowerCase();
+    const hostSubdomain = parseSubdomainFromHost(req.headers["x-tenant-host"] || req.headers.host || "");
+    const subdomain = querySubdomain || hostSubdomain;
+
+    let productType = "realestate";
+    let tenantExists = false;
+
+    if (subdomain) {
+      const tenant = await Tenant.findOne({ subdomain }).select("productType status").lean();
+      if (tenant) {
+        tenantExists = true;
+        productType = String(tenant.productType || "realestate").toLowerCase();
+      }
+    }
+
+    res.setHeader("X-Tenant-Product", productType);
+    res.setHeader("X-Tenant-Exists", tenantExists ? "1" : "0");
+    return res.status(204).end();
+  } catch {
+    res.setHeader("X-Tenant-Product", "realestate");
+    res.setHeader("X-Tenant-Exists", "0");
+    return res.status(204).end();
+  }
+};
 
 exports.getPublicWebsiteData = async (req, res) => {
   try {

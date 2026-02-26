@@ -113,6 +113,20 @@ Environment=NODE_ENV=production
 Environment=PORT=3001
 ExecStart=${NPM_BIN} run start"
 
+install_service \
+  "realestate-tenant-ecommerce.service" \
+  "WorkingDirectory=${ROOT_DIR}/tenant-website-ecommerce
+Environment=NODE_ENV=production
+Environment=PORT=3002
+ExecStart=${NPM_BIN} run start"
+
+install_service \
+  "realestate-tenant-tourism.service" \
+  "WorkingDirectory=${ROOT_DIR}/tenant-website-tourism
+Environment=NODE_ENV=production
+Environment=PORT=3003
+ExecStart=${NPM_BIN} run start"
+
 echo "➤ Reloading systemd daemon"
 sudo systemctl daemon-reload
 
@@ -120,12 +134,16 @@ echo "➤ Enabling and starting all services"
 sudo systemctl enable --now \
   realestate-backend.service \
   realestate-frontend.service \
-  realestate-tenant-next.service
+  realestate-tenant-next.service \
+  realestate-tenant-ecommerce.service \
+  realestate-tenant-tourism.service
 
 echo "➤ Service summary"
 sudo systemctl --no-pager --full status \
   realestate-backend.service \
   realestate-frontend.service \
-  realestate-tenant-next.service | sed -n '1,48p'
+  realestate-tenant-next.service \
+  realestate-tenant-ecommerce.service \
+  realestate-tenant-tourism.service | sed -n '1,80p'
 
 echo "✅ All RealEstate services are installed and running"

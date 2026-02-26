@@ -6,11 +6,13 @@ const {
 	getPublicProperties,
 	getPublicPropertyById,
 	getPublicAgents,
+	resolveTenantProductType,
 } = require("../controllers/public.controller");
 
 const router = express.Router();
 
 router.get("/website", tenantResolver, getPublicWebsiteData);
+router.get("/tenant-product", resolveTenantProductType);
 router.get("/properties", tenantResolver, getPublicProperties);
 router.get("/properties/:id", tenantResolver, getPublicPropertyById);
 router.get("/agents", tenantResolver, getPublicAgents);

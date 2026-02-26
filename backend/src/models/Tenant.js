@@ -63,6 +63,12 @@ const tenantSchema = new mongoose.Schema(
     },
 
     // 🔹 Plan and Billing
+    productType: {
+      type: String,
+      enum: ["realestate", "ecommerce", "tourism"],
+      default: "realestate",
+      index: true,
+    },
     plan: {
       type: String,
       // enum: ["basic", "standard", "premium", "enterprise"],

@@ -6,6 +6,8 @@ SERVICES=(
   realestate-backend.service
   realestate-frontend.service
   realestate-tenant-next.service
+  realestate-tenant-ecommerce.service
+  realestate-tenant-tourism.service
 )
 
 echo "== Service State =="
@@ -29,6 +31,8 @@ check_url() {
 check_url "backend" "http://127.0.0.1:8080/healthz"
 check_url "frontend" "http://127.0.0.1:3000"
 check_url "tenant-next" "http://127.0.0.1:3001"
+check_url "tenant-ecommerce" "http://127.0.0.1:3002"
+check_url "tenant-tourism" "http://127.0.0.1:3003"
 
 echo
 echo "== SMTP Diagnostics =="
