@@ -18,6 +18,7 @@ const SERVER_IP = (process.env.SERVER_IP || "").trim();
 const JWT_SECRET = process.env.JWT_SECRET || "global_secret_key";
 const ADMIN_SETUP_TOKEN_EXPIRES_IN = process.env.ADMIN_SETUP_TOKEN_EXPIRES_IN || "24h";
 const AUTO_APPROVE_PLANS = new Set(["free", "trial"]);
+const ALLOWED_PRODUCT_TYPES = new Set(["realestate", "ecommerce", "tourism"]);
 const AUTO_APPROVE_FREE_PLAN_ENABLED = !["false", "0", "no", "off"].includes(
   String(process.env.AUTO_APPROVE_FREE_PLAN || "true").trim().toLowerCase()
 );
@@ -72,6 +73,11 @@ const normalizeSubdomain = (value = "") =>
     .replace(/[^a-z0-9-]/g, "")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
+
+const normalizeProductType = (value = "") => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return ALLOWED_PRODUCT_TYPES.has(normalized) ? normalized : "realestate";
+};
 
 const buildUniqueSubdomain = async (base) => {
   const cleanBase = normalizeSubdomain(base) || "tenant";
@@ -268,7 +274,7 @@ const provisionApprovedTenant = async ({
   };
 };
 
-const queuePendingEmails = async ({ name, email, phone, subdomain, plan, requestedDomain }) => {
+const queuePendingEmails = async ({ name, email, phone, subdomain, plan, requestedDomain, productType }) => {
   await emailQueue.add("sendVisitorEmail", {
     to: email,
     subject: "Registration received - pending approval",
@@ -291,11 +297,39 @@ const queuePendingEmails = async ({ name, email, phone, subdomain, plan, request
           <li><strong>Phone:</strong> ${phone || "N/A"}</li>
           <li><strong>Requested domain:</strong> ${requestedDomain || "Not provided"}</li>
           <li><strong>Proposed subdomain:</strong> ${subdomain}.${BASE_DOMAIN}</li>
+          <li><strong>Product:</strong> ${productType || "realestate"}</li>
           <li><strong>Plan:</strong> ${plan}</li>
         </ul>
       `,
     });
   }
+};
+
+const sendAdminOnboardingEmail = async ({ tenant, adminEmail, adminName }) => {
+  const resolvedAdminEmail = String(adminEmail || tenant.email || "").trim().toLowerCase();
+  const resolvedAdminName = String(adminName || `${tenant.name} Admin`).trim();
+  const adminSetupLink = buildAdminSetupLink({
+    tenantId: tenant._id,
+    adminEmail: resolvedAdminEmail,
+  });
+
+  await emailQueue.add("sendAdminOnboardingEmail", {
+    to: resolvedAdminEmail,
+    subject: "Confirm your admin email and create your password",
+    html: `
+      <p>Hi ${resolvedAdminName},</p>
+      <p>Your admin account is ready for <strong>${tenant.name}</strong>.</p>
+      <p>Please confirm your email and create your password using the link below:</p>
+      <p><a href="${adminSetupLink}">${adminSetupLink}</a></p>
+      <p><strong>Username:</strong> ${resolvedAdminEmail}</p>
+      <p>This link expires in ${ADMIN_SETUP_TOKEN_EXPIRES_IN}.</p>
+    `,
+  });
+
+  return {
+    adminUsername: resolvedAdminEmail,
+    createPasswordLink: adminSetupLink,
+  };
 };
 
 exports.registerTenant = async (req, res) => {
@@ -306,6 +340,7 @@ exports.registerTenant = async (req, res) => {
       phone,
       address,
       plan,
+      productType,
       desiredDomain,
       websiteTheme,
       seoTitle,
@@ -369,6 +404,7 @@ exports.registerTenant = async (req, res) => {
     }
 
     const selectedPlan = normalizePlanKey(plan || "trial");
+    const selectedProductType = normalizeProductType(productType);
 
     const tenant = await Tenant.create({
       name,
@@ -380,6 +416,7 @@ exports.registerTenant = async (req, res) => {
       domain: `${subdomain}.${BASE_DOMAIN}`,
       requestedDomain,
       databaseName,
+      productType: selectedProductType,
       plan: selectedPlan,
       websiteTheme: ["black", "gold"].includes(String(websiteTheme || "").toLowerCase())
         ? String(websiteTheme).toLowerCase()
@@ -425,6 +462,7 @@ exports.registerTenant = async (req, res) => {
           name: tenant.name,
           email: tenant.email,
           status: tenant.status,
+          productType: tenant.productType,
           plan: tenant.plan,
           subdomain: tenant.subdomain,
           defaultWebsite: `https://${tenant.subdomain}.${BASE_DOMAIN}`,
@@ -445,6 +483,7 @@ exports.registerTenant = async (req, res) => {
       subdomain,
       plan: tenant.plan,
       requestedDomain,
+      productType: tenant.productType,
     });
 
     return res.status(201).json({
@@ -454,6 +493,7 @@ exports.registerTenant = async (req, res) => {
         name: tenant.name,
         email: tenant.email,
         status: tenant.status,
+        productType: tenant.productType,
         plan: tenant.plan,
         subdomain: tenant.subdomain,
         defaultWebsite: `https://${tenant.subdomain}.${BASE_DOMAIN}`,
@@ -509,7 +549,7 @@ exports.findWebsiteByEmail = async (req, res) => {
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     const tenant = await Tenant.findOne({ email }).select(
-      "name email status subdomain domain customDomains domainVerified plan"
+      "name email status subdomain domain customDomains domainVerified plan productType"
     );
 
     if (!tenant) {
@@ -528,6 +568,7 @@ exports.findWebsiteByEmail = async (req, res) => {
         name: tenant.name,
         email: tenant.email,
         status: tenant.status,
+        productType: tenant.productType,
         plan: tenant.plan,
         subdomain: tenant.subdomain,
         domain,
@@ -604,6 +645,7 @@ exports.resolveTenant = async (req, res) => {
       domain: tenant.domain,
       status: tenant.status,
       plan: tenant.plan,
+      productType: tenant.productType,
       trialActive: tenant.trialActive,
       trialEndsAt: tenant.trialEndsAt,
     });
@@ -682,6 +724,59 @@ exports.rejectTenant = async (req, res) => {
     return res.status(200).json({ message: "Tenant rejected", tenant });
   } catch (error) {
     console.error("❌ Reject tenant error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+exports.resendAdminOnboarding = async (req, res) => {
+  try {
+    const tenant = await Tenant.findById(req.params.id);
+    if (!tenant) {
+      return res.status(404).json({ error: "Tenant not found" });
+    }
+
+    if (tenant.status !== "approved") {
+      return res.status(400).json({ error: "Tenant is not approved yet" });
+    }
+
+    const requestedAdminEmail = String(req.body?.adminEmail || "").trim().toLowerCase();
+    const adminEmail = requestedAdminEmail || String(tenant.email || "").trim().toLowerCase();
+    if (!adminEmail) {
+      return res.status(400).json({ error: "Admin email is required" });
+    }
+
+    const tenantConn = await connectTenantDB(tenant.databaseName);
+    const User = tenantConn.model("User", userSchema);
+    const adminUser = await User.findOne({ email: adminEmail });
+
+    if (!adminUser) {
+      return res.status(404).json({
+        error: "Admin user not found in tenant database. Provide the correct adminEmail.",
+      });
+    }
+
+    adminUser.emailVerified = false;
+    adminUser.passwordSetupRequired = true;
+    await adminUser.save();
+
+    const onboarding = await sendAdminOnboardingEmail({
+      tenant,
+      adminEmail: adminUser.email,
+      adminName: adminUser.name,
+    });
+
+    return res.status(200).json({
+      message: "Admin onboarding email has been re-sent",
+      tenant: {
+        id: tenant._id,
+        name: tenant.name,
+        subdomain: tenant.subdomain,
+        status: tenant.status,
+      },
+      onboarding,
+    });
+  } catch (error) {
+    console.error("❌ Resend onboarding error:", error);
     return res.status(500).json({ error: error.message });
   }
 };

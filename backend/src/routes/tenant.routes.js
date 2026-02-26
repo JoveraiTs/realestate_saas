@@ -36,6 +36,7 @@ router.get("/resolve", tenantResolver, tenantController.resolveTenant);
 
 router.get("/pending", masterAuth, tenantController.getPendingTenants);
 router.put("/approve/:id", masterAuth, tenantController.approveTenant);
+router.post("/resend-onboarding/:id", masterAuth, tenantController.resendAdminOnboarding);
 router.put("/reject/:id", masterAuth, tenantController.rejectTenant);
 router.put("/custom-domain/:id", masterAuth, tenantController.updateCustomDomain);
 router.put("/verify-domain/:id", masterAuth, tenantController.verifyCustomDomain);
