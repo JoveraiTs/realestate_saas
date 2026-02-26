@@ -5,6 +5,9 @@ const smtpPort = Number(process.env.SMTP_PORT || 465);
 const smtpSecure = String(process.env.SMTP_SECURE || (smtpPort === 465 ? "true" : "false")).toLowerCase() === "true";
 const smtpUser = String(process.env.SMTP_USER || "").trim();
 const smtpPass = String(process.env.SMTP_PASS || "").trim();
+const smtpConnectionTimeoutMs = Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 10000);
+const smtpGreetingTimeoutMs = Number(process.env.SMTP_GREETING_TIMEOUT_MS || 10000);
+const smtpSocketTimeoutMs = Number(process.env.SMTP_SOCKET_TIMEOUT_MS || 15000);
 const defaultFrom = String(process.env.SMTP_FROM_EMAIL || smtpUser || "no-reply@localhost").trim();
 const deliveryMode = String(process.env.EMAIL_DELIVERY_MODE || "auto").trim().toLowerCase();
 
@@ -17,6 +20,9 @@ const transporter = nodemailer.createTransport({
   host: smtpHost,
   port: smtpPort,
   secure: smtpSecure,
+  connectionTimeout: Number.isFinite(smtpConnectionTimeoutMs) ? smtpConnectionTimeoutMs : 10000,
+  greetingTimeout: Number.isFinite(smtpGreetingTimeoutMs) ? smtpGreetingTimeoutMs : 10000,
+  socketTimeout: Number.isFinite(smtpSocketTimeoutMs) ? smtpSocketTimeoutMs : 15000,
   auth: smtpUser && smtpPass
     ? {
       user: smtpUser,

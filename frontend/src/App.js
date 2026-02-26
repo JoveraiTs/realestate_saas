@@ -746,6 +746,7 @@ const SuperAdminDashboard = ({ session }) => {
   const [configSaving, setConfigSaving] = useState(false);
   const [configMessage, setConfigMessage] = useState('');
   const [error, setError] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
   const [domainMessage, setDomainMessage] = useState('');
   const [customDomainDrafts, setCustomDomainDrafts] = useState({});
   const [busyId, setBusyId] = useState('');
@@ -852,6 +853,7 @@ const SuperAdminDashboard = ({ session }) => {
 
   const approveTenant = async (tenant) => {
     try {
+      setActionMessage('');
       setBusyId(tenant._id);
       const response = await fetch(apiUrl(`/api/tenants/approve/${tenant._id}`), {
         method: 'PUT',
@@ -874,6 +876,7 @@ const SuperAdminDashboard = ({ session }) => {
       if (!response.ok) {
         throw new Error(getApiErrorMessage(response, data, 'Approval failed'));
       }
+      setActionMessage(`Tenant approved for ${tenant.name}.`);
       await fetchTenants();
     } catch (err) {
       setError(err.message || 'Approval failed');
@@ -887,6 +890,7 @@ const SuperAdminDashboard = ({ session }) => {
     if (note === null) return;
 
     try {
+      setActionMessage('');
       setBusyId(tenant._id);
       const response = await fetch(apiUrl(`/api/tenants/reject/${tenant._id}`), {
         method: 'PUT',
@@ -900,9 +904,45 @@ const SuperAdminDashboard = ({ session }) => {
       if (!response.ok) {
         throw new Error(getApiErrorMessage(response, data, 'Rejection failed'));
       }
+      setActionMessage(`Rejection note sent for ${tenant.name}.`);
       await fetchTenants();
     } catch (err) {
       setError(err.message || 'Rejection failed');
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  const resendOnboarding = async (tenant) => {
+    const defaultEmail = String(tenant.email || '').trim();
+    const adminEmail = window.prompt('Send onboarding email to:', defaultEmail);
+    if (adminEmail === null) return;
+
+    const normalizedEmail = String(adminEmail || '').trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError('Admin email is required');
+      return;
+    }
+
+    try {
+      setError('');
+      setActionMessage('');
+      setBusyId(tenant._id);
+      const response = await fetch(apiUrl(`/api/tenants/resend-onboarding/${tenant._id}`), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ adminEmail: normalizedEmail }),
+      });
+      const data = await readApiPayload(response);
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(response, data, 'Failed to resend onboarding email'));
+      }
+      setActionMessage(`Onboarding email re-sent to ${normalizedEmail}.`);
+    } catch (err) {
+      setError(err.message || 'Failed to resend onboarding email');
     } finally {
       setBusyId('');
     }
@@ -1125,6 +1165,7 @@ const SuperAdminDashboard = ({ session }) => {
           </div>
 
           {error && <div className="error-message">{error}</div>}
+          {actionMessage && <div className="sa-success">{actionMessage}</div>}
 
           {activePage === 'tenant-services' ? (
             <>
@@ -1212,6 +1253,16 @@ const SuperAdminDashboard = ({ session }) => {
                                     disabled={busyId === tenant._id}
                                   >
                                     Reject / Request Info
+                                  </button>
+                                )}
+                                {tenant.status === 'approved' && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline"
+                                    onClick={() => resendOnboarding(tenant)}
+                                    disabled={busyId === tenant._id}
+                                  >
+                                    Resend Onboarding Email
                                   </button>
                                 )}
                               </td>

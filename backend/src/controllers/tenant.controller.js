@@ -34,6 +34,20 @@ const planLimitError = (message) => {
   return error;
 };
 
+const emailDeliveryError = (message) => {
+  const error = new Error(message);
+  error.statusCode = 503;
+  return error;
+};
+
+const enqueueEmailOrThrow = async (jobName, payload) => {
+  const result = await emailQueue.add(jobName, payload);
+  if (result && result.skipped) {
+    throw emailDeliveryError(`Email delivery is not configured: ${result.reason || "no working transport"}`);
+  }
+  return result;
+};
+
 const buildAdminSetupLink = ({ tenantId, adminEmail }) => {
   const setupToken = jwt.sign(
     {
@@ -240,7 +254,7 @@ const provisionApprovedTenant = async ({
 
   await tenant.save();
 
-  await emailQueue.add("sendVisitorEmail", {
+  await enqueueEmailOrThrow("sendVisitorEmail", {
     to: tenant.email,
     subject: "Tenant approved - website is live",
     html: `
@@ -251,7 +265,7 @@ const provisionApprovedTenant = async ({
     `,
   });
 
-  await emailQueue.add("sendAdminOnboardingEmail", {
+  await enqueueEmailOrThrow("sendAdminOnboardingEmail", {
     to: resolvedAdminEmail,
     subject: "Confirm your admin email and create your password",
     html: `
@@ -275,7 +289,7 @@ const provisionApprovedTenant = async ({
 };
 
 const queuePendingEmails = async ({ name, email, phone, subdomain, plan, requestedDomain, productType }) => {
-  await emailQueue.add("sendVisitorEmail", {
+  await enqueueEmailOrThrow("sendVisitorEmail", {
     to: email,
     subject: "Registration received - pending approval",
     html: `
@@ -286,7 +300,7 @@ const queuePendingEmails = async ({ name, email, phone, subdomain, plan, request
   });
 
   if (process.env.ALERT_EMAIL) {
-    await emailQueue.add("sendAdminEmail", {
+    await enqueueEmailOrThrow("sendAdminEmail", {
       to: process.env.ALERT_EMAIL,
       subject: `New tenant registration - ${name}`,
       html: `
@@ -313,7 +327,7 @@ const sendAdminOnboardingEmail = async ({ tenant, adminEmail, adminName }) => {
     adminEmail: resolvedAdminEmail,
   });
 
-  await emailQueue.add("sendAdminOnboardingEmail", {
+  await enqueueEmailOrThrow("sendAdminOnboardingEmail", {
     to: resolvedAdminEmail,
     subject: "Confirm your admin email and create your password",
     html: `
@@ -777,7 +791,8 @@ exports.resendAdminOnboarding = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Resend onboarding error:", error);
-    return res.status(500).json({ error: error.message });
+    const statusCode = Number(error.statusCode) || 500;
+    return res.status(statusCode).json({ error: error.message });
   }
 };
 
